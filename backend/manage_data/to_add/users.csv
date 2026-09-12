@@ -1,0 +1,15 @@
+email,password,full_name,role
+admin@university.local,Admin123!,Администратор Системы,admin
+teacher1@university.local,Teacher123!,Профессор Сидоров Алексей Петрович,teacher
+teacher2@university.local,Teacher123!,Доцент Козлова Мария Ивановна,teacher
+teacher3@university.local,Teacher123!,Ст. преподаватель Новиков Дмитрий Сергеевич,teacher
+student_a1@university.local,Student123!,Иванов Иван Иванович,student
+student_a2@university.local,Student123!,Петрова Анна Сергеевна,student
+student_a3@university.local,Student123!,Сидоров Максим Олегович,student
+student_a4@university.local,Student123!,Козлова Дарья Николаевна,student
+student_a5@university.local,Student123!,Новикова Елена Андреевна,student
+student_b1@university.local,Student123!,Морозов Артём Викторович,student
+student_b2@university.local,Student123!,Волкова Ксения Дмитриевна,student
+student_b3@university.local,Student123!,Соколов Никита Александрович,student
+student_b4@university.local,Student123!,Лебедева Ольга Павловна,student
+student_b5@university.local,Student123!,Зайцев Павел Игоревич,student

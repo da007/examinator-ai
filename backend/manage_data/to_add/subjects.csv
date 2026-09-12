@@ -1,0 +1,6 @@
+name,description,teacher_email
+Математический анализ,Дифференциальное и интегральное исчисление,teacher1@university.local
+Программирование на Python,Основы алгоритмов и структур данных на Python,teacher2@university.local
+Базы данных,Реляционная модель SQL и нормализация схем,teacher3@university.local
+Компьютерные сети,Протоколы и архитектура сетей OSI/TCP-IP,teacher2@university.local
+Введение в ИИ,Основы машинного обучения (общий предмет),teacher3@university.local

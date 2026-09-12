@@ -1,0 +1,118 @@
+.login-page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(var(--bg));
+  padding: 24px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.login-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.login-logo {
+  font-size: 28px;
+  color: rgb(var(--primary));
+  display: block;
+  margin-bottom: 4px;
+}
+
+.login-title {
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: rgb(var(--text));
+}
+
+.login-subtitle {
+  font-size: 13px;
+  color: rgb(var(--text-muted));
+  line-height: 1.5;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border: 1px solid rgb(var(--border));
+  border-radius: 6px;
+  padding: 28px;
+  background: rgb(var(--surface));
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.login-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgb(var(--text-muted));
+}
+
+.login-input {
+  padding: 10px 14px;
+  background: rgb(var(--bg));
+  border: 1px solid rgb(var(--border));
+  border-radius: 4px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 14px;
+  color: rgb(var(--text));
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+.login-input:focus { border-color: rgb(var(--primary)); }
+.login-input:disabled { opacity: 0.5; }
+.login-input::placeholder { color: rgb(var(--text-muted)); opacity: 0.5; }
+
+.login-error {
+  font-size: 13px;
+  color: rgb(var(--destructive));
+  padding: 8px 12px;
+  border: 1px solid rgb(var(--destructive) / 0.3);
+  border-radius: 4px;
+  background: rgb(var(--destructive) / 0.05);
+}
+
+.login-submit {
+  width: 100%;
+  padding: 11px;
+  background: rgb(var(--primary));
+  color: rgb(var(--primary-fg));
+  border: none;
+  border-radius: 4px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-top: 4px;
+}
+.login-submit:hover:not(:disabled) { background: rgb(var(--primary-hover)); }
+.login-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.login-footer {
+  font-size: 12px;
+  color: rgb(var(--text-muted));
+  text-align: center;
+  opacity: 0.6;
+}

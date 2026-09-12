@@ -1,0 +1,5 @@
+Файл-заготовка лекции: 01_Реляционная_модель_данных.docx
+Предмет: databases
+
+Заполните лекционным материалом и переименуйте в .docx
+Поместите в backend/manage_data/lectures/databases/ и запустите system_manager.py

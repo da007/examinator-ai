@@ -1,0 +1,113 @@
+services:
+
+  # ─── PostgreSQL + pgvector ───────────────────────────────────────────────────
+  db:
+    image: ankane/pgvector:v0.5.1
+    container_name: ai_exam_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "0.0.0.0:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ─── Redis ──────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: ai_exam_redis
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ─── MinIO (S3-совместимое хранилище) ────────────────────────────────────────
+  s3:
+    image: minio/minio:latest
+    container_name: ai_exam_s3
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:9000:9000"   # S3 API
+      - "0.0.0.0:9001:9001"   # Web UI
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ─── FastAPI приложение ───────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: docker/app.dockerfile
+      target: final
+    container_name: ai_exam_api
+    restart: unless-stopped
+    # ИСПРАВЛЕНО: один env_file — только .env.docker
+    env_file:
+      - .env
+    ports:
+      - "0.0.0.0:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      s3:
+        condition: service_healthy
+    volumes:
+      - ml_cache:/app/.cache
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # ─── Celery Worker ────────────────────────────────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: docker/worker.dockerfile
+      target: final
+    container_name: ai_exam_worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      s3:
+        condition: service_healthy
+    volumes:
+      - ml_cache:/app/.cache
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+# ─── Volumes ─────────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+  minio_data:
+  # ДОБАВЛЕНО: именованный volume для кэша HuggingFace моделей
+  # Модели скачиваются при первом запуске воркера и живут здесь навсегда.
+  # docker-compose down НЕ удаляет его. Только docker-compose down -v.
+  ml_cache:

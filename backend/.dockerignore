@@ -1,0 +1,27 @@
+# env
+.env
+.env.*
+
+# python
+__pycache__/
+*.pyc
+
+# git
+.git
+.gitignore
+
+# docker
+docker-compose.yml
+
+# local data
+.ml_cache/
+.cache/
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# tests
+tests/
+!tests/

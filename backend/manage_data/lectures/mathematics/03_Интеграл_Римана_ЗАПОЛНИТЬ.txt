@@ -1,0 +1,5 @@
+Файл-заготовка лекции: 03_Интеграл_Римана.docx
+Предмет: mathematics
+
+Заполните лекционным материалом и переименуйте в .docx
+Поместите в backend/manage_data/lectures/mathematics/ и запустите system_manager.py

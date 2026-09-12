@@ -1,0 +1,5 @@
+Файл-заготовка лекции: 01_История_и_понятия_ИИ.docx
+Предмет: ai_intro
+
+Заполните лекционным материалом и переименуйте в .docx
+Поместите в backend/manage_data/lectures/ai_intro/ и запустите system_manager.py

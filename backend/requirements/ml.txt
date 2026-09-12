@@ -1,0 +1,6 @@
+# ML-зависимости — не устанавливаются в тестовом образе
+-r base.txt
+
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.2.0+cpu
+sentence-transformers==2.3.1

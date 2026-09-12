@@ -1,0 +1,5 @@
+Файл-заготовка лекции: 03_ООП_классы_и_наследование.docx
+Предмет: python_programming
+
+Заполните лекционным материалом и переименуйте в .docx
+Поместите в backend/manage_data/lectures/python_programming/ и запустите system_manager.py

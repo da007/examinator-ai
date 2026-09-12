@@ -1,0 +1,224 @@
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { getSubjects } from '@/api/subject';
+import { uploadLecture } from '@/api/lecture';
+import { Upload, FileText, AlertCircle, Loader2, ChevronLeft } from 'lucide-react';
+import { notify } from '@/store/useNotificationStore';
+import { PageHeader } from '@/components/PageHeader';
+import { clsx } from 'clsx';
+import { getApiErrorMessage } from '@/api/client'; 
+
+export function UploadPage() {
+  const navigate = useNavigate();
+  const [file, setFile] = useState<File | null>(null);
+  const [title, setTitle] = useState('');
+  const [selectedSubjectId, setSelectedSubjectId] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+
+  // 1. Получаем список предметов
+  const { data: subjects, isLoading: isLoadingSubjects, isError } = useQuery({
+    queryKey: ['subjects'],
+    queryFn: getSubjects
+  });
+
+  // 2. Устанавливаем первый предмет по умолчанию
+  useEffect(() => {
+    if (subjects && subjects.length > 0 && !selectedSubjectId) {
+      setSelectedSubjectId(subjects[0].id);
+    }
+  }, [subjects, selectedSubjectId]);
+
+  // 3. Мутация загрузки
+  const uploadMutation = useMutation({
+    mutationFn: () => uploadLecture(title, selectedSubjectId, file!),
+    onSuccess: () => {
+      notify('success', 'Лекция успешно загружена и отправлена на анализ');
+      navigate('/teacher/dashboard');
+    },
+    onError: (error: any) => {
+      // ИСПРАВЛЕНО: используем хелпер вместо прямого обращения к .detail
+      const msg = getApiErrorMessage(error); 
+      notify('error', msg);
+    }
+  });
+
+  // 4. Обработка выбора файла через диалог
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      validateAndSetFile(e.target.files[0]);
+    }
+  };
+
+  // 5. Обработка Drag-and-Drop
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setIsDragging(true);
+    } else if (e.type === "dragleave") {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      validateAndSetFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const validateAndSetFile = (selectedFile: File) => {
+    const ext = selectedFile.name.split('.').pop()?.toLowerCase();
+    if (ext !== 'docx' && ext !== 'txt') {
+      notify('error', 'Поддерживаются только форматы .docx и .txt');
+      return;
+    }
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      notify('error', 'Файл слишком большой (максимум 10MB)');
+      return;
+    }
+    setFile(selectedFile);
+  };
+
+  const isReady = title.length >= 3 && selectedSubjectId !== "" && file && !uploadMutation.isPending;
+  return (
+    <div className="min-h-full bg-app/20 flex flex-col">
+      <PageHeader 
+        title="Новый материал" 
+        subtitle="Загрузите лекцию, и ИИ подготовит вопросы для проверки знаний"
+        backTo="/teacher/dashboard"
+      />
+
+      <main className="max-w-2xl mx-auto p-8 w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {isError ? (
+          <div className="bg-destructive/10 border border-destructive/20 p-6 rounded-2xl text-center">
+            <AlertCircle className="text-destructive mx-auto mb-3" size={32} />
+            <p className="text-sm font-bold text-app">Ошибка загрузки дисциплин</p>
+            <p className="text-xs text-muted-app mt-1">Проверьте соединение с сервером</p>
+          </div>
+        ) : subjects && subjects.length === 0 ? (
+          <div className="bg-warning/10 border border-warning/20 p-8 rounded-3xl text-center">
+            <AlertCircle className="text-warning mx-auto mb-4" size={40} />
+            <h3 className="text-lg font-black text-app">Нет доступных дисциплин</h3>
+            <p className="text-sm text-muted-app mt-2 leading-relaxed">
+              Администратор еще не добавил ни одного предмета в систему. 
+              Свяжитесь с техподдержкой для создания категорий.
+            </p>
+            <button 
+              onClick={() => navigate('/teacher/dashboard')}
+              className="mt-6 flex items-center gap-2 mx-auto text-xs font-bold text-primary uppercase"
+            >
+              <ChevronLeft size={14} /> Вернуться назад
+            </button>
+          </div>
+        ) : (
+          <div className="bg-surface border border-app rounded-[2.5rem] p-10 shadow-sm space-y-10">
+            {/* Название */}
+            <div className="space-y-3">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-app ml-1">Название лекции</label>
+              <input  
+                className="w-full bg-surface-alt border border-app rounded-2xl px-5 py-4 outline-none focus:border-primary focus:bg-surface transition-all font-medium text-app placeholder:text-muted-app/40"
+                placeholder="Например: Основы квантовой механики"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
+
+            {/* Выбор дисциплины */}
+            <div className="space-y-3">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-app ml-1">Дисциплина</label>
+              {isLoadingSubjects ? (
+                <div className="flex items-center gap-3 px-5 py-4 bg-app/30 rounded-2xl">
+                  <Loader2 size={16} className="animate-spin text-primary" />
+                  <span className="text-xs font-bold text-muted-app uppercase">Получение списка...</span>
+                </div>
+              ) : (
+                <select 
+                  className="w-full bg-surface-alt border border-app rounded-2xl px-5 py-4 outline-none focus:border-primary focus:bg-surface transition-all font-bold text-sm text-app appearance-none cursor-pointer"
+                  value={selectedSubjectId}
+                  onChange={(e) => setSelectedSubjectId(e.target.value)}
+                >
+                  {subjects?.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Загрузка файла / Drop Zone */}
+            <div className="space-y-3">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-app ml-1">Документ (DOCX или TXT)</label>
+              <label 
+                className={clsx(
+                  "group relative flex flex-col items-center justify-center w-full h-56 border-2 border-dashed rounded-[2rem] cursor-pointer transition-all duration-300",
+                  isDragging ? "border-primary bg-primary/10 scale-[1.02]" : 
+                  file ? "border-success/40 bg-success/5 shadow-inner" : "border-app hover:border-primary/40 bg-app/30 hover:bg-app/50"
+                )}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+              >
+                <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4 pointer-events-none">
+                  {isDragging ? (
+                    <>
+                      <div className="w-16 h-16 bg-primary/20 text-primary rounded-2xl flex items-center justify-center mb-4 animate-bounce">
+                        <Upload size={32} />
+                      </div>
+                      <p className="text-sm font-black text-primary uppercase">Бросайте файл сюда</p>
+                    </>
+                  ) : file ? (
+                    <>
+                      <div className="w-16 h-16 bg-success/20 text-success rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-success/10">
+                        <FileText size={32} />
+                      </div>
+                      <p className="text-sm font-bold text-app truncate max-w-[240px]">{file.name}</p>
+                      <p className="text-[10px] text-success font-black uppercase mt-2 tracking-tighter">Файл готов к обработке</p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-16 h-16 bg-app text-muted-app group-hover:text-primary rounded-2xl flex items-center justify-center mb-4 transition-colors">
+                        <Upload size={32} />
+                      </div>
+                      <p className="text-sm font-bold text-app">Выберите или перетащите файл</p>
+                      <p className="text-[10px] text-muted-app mt-2 uppercase font-black tracking-widest opacity-60">DOCX, TXT до 10 MB</p>
+                    </>
+                  )}
+                </div>
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  accept=".docx,.txt" 
+                  onChange={handleFileChange} 
+                  disabled={uploadMutation.isPending} 
+                />
+              </label>
+            </div>
+
+            <button 
+              onClick={() => uploadMutation.mutate()}
+              disabled={!isReady}
+              className="w-full bg-primary text-white py-5 rounded-2xl font-black text-sm flex items-center justify-center gap-3 hover:bg-primary-hover disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-xl shadow-primary/20 active:scale-[0.98]"
+            >
+              {uploadMutation.isPending ? (
+                <>
+                  <Loader2 className="animate-spin" size={20} />
+                  <span>АНАЛИЗИРУЕМ ТЕКСТ...</span>
+                </>
+              ) : (
+                <>
+                  <FileText size={20} />
+                  <span>НАЧАТЬ ГЕНЕРАЦИЮ ВОПРОСОВ</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}

@@ -1,0 +1,76 @@
+/*
+ * dark-theme-fixes.css — исправления тёмной темы
+ * Подключите в index.css первой строкой: @import './styles/dark-theme-fixes.css';
+ */
+
+.dark { color-scheme: dark; }
+
+/* ── Inputs & Textarea ── */
+.dark textarea, .dark input[type="text"],
+.dark input[type="email"], .dark input[type="password"],
+.dark input[type="search"], .dark input[type="number"] {
+  color: var(--color-text-app, #e5e7eb);
+  background-color: var(--color-surface, #1f2937);
+  border-color: var(--color-border-app, #374151);
+  -webkit-text-fill-color: var(--color-text-app, #e5e7eb);
+  caret-color: var(--color-primary, #6366f1);
+}
+.dark textarea::placeholder, .dark input::placeholder {
+  color: var(--color-text-muted, #6b7280); opacity: 1;
+}
+
+/* ── Scrollbar ── */
+.dark .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.dark .custom-scrollbar::-webkit-scrollbar-track { background: var(--color-surface-alt, #111827); }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--color-border-app, #374151); border-radius: 3px; }
+
+/* ── Sidebar (chat-nav) ── */
+.dark .chat-nav { background-color: var(--color-surface, #1f2937); border-right: 1px solid var(--color-border-app, #374151); }
+.dark .chat-nav__header { border-bottom-color: var(--color-border-app, #374151); background-color: var(--color-surface-alt, #111827); }
+.dark .chat-nav__title { color: var(--color-text-muted, #9ca3af); }
+.dark .chat-nav__item { color: var(--color-text-muted, #9ca3af); }
+.dark .chat-nav__item:hover { background-color: rgba(255,255,255,0.04); color: var(--color-text-app, #e5e7eb); }
+.dark .chat-nav__item--active { background-color: rgba(99,102,241,0.12); color: var(--color-primary, #6366f1); }
+.dark .chat-nav__item--answered { color: var(--color-success, #10b981); }
+.dark .chat-nav__footer { border-top-color: var(--color-border-app, #374151); background-color: var(--color-surface, #1f2937); }
+
+/* ── Chat Feed & Input ── */
+.dark .chat-feed-wrap { background-color: var(--color-bg-app, #0f172a); }
+.dark .chat-input-area { background-color: var(--color-surface, #1f2937); border-top-color: var(--color-border-app, #374151); }
+.dark .chat-input-row { background-color: rgba(255,255,255,0.03); border-color: var(--color-border-app, #374151); }
+.dark .chat-input-row:focus-within { border-color: var(--color-primary, #6366f1); background-color: var(--color-surface, #1f2937); }
+.dark .chat-input { color: var(--color-text-app, #e5e7eb); }
+
+/* ── Chips ── */
+.dark .chat-chip { background-color: rgba(255,255,255,0.04); border-color: var(--color-border-app, #374151); color: var(--color-text-muted, #9ca3af); }
+.dark .chat-chip:hover:not(:disabled) { border-color: var(--color-primary, #6366f1); color: var(--color-primary, #6366f1); background-color: rgba(99,102,241,0.08); }
+
+/* ── Cards / White blocks ── */
+.dark .bg-white, .dark .bg-white\/50, .dark .bg-white\/80 { background-color: var(--color-surface, #1f2937) !important; }
+
+/* ── Tables ── */
+.dark table thead tr { background-color: var(--color-surface-alt, #111827); }
+.dark table thead th { color: var(--color-text-muted, #9ca3af); border-color: var(--color-border-app, #374151); }
+.dark table tbody td { color: var(--color-text-app, #e5e7eb); border-color: var(--color-border-app, #374151); }
+.dark table tbody tr:hover td { background-color: rgba(255,255,255,0.02); }
+
+/* ── Dialogs ── */
+.dark [role="dialog"], .dark [data-radix-dialog-content] {
+  background-color: var(--color-surface, #1f2937);
+  border-color: var(--color-border-app, #374151);
+  color: var(--color-text-app, #e5e7eb);
+}
+
+/* ── PageHeader ── */
+.dark .page-header { background-color: var(--color-surface, #1f2937); border-bottom-color: var(--color-border-app, #374151); }
+
+/* ── Select ── */
+.dark select { background-color: var(--color-surface, #1f2937); color: var(--color-text-app, #e5e7eb); border-color: var(--color-border-app, #374151); }
+
+/* ── Tailwind gray overrides ── */
+.dark .text-gray-500, .dark .text-gray-600 { color: var(--color-text-muted, #6b7280) !important; }
+.dark .text-gray-700 { color: var(--color-text-app, #9ca3af) !important; }
+.dark .text-gray-800, .dark .text-gray-900 { color: var(--color-text-app, #e5e7eb) !important; }
+.dark .bg-gray-50 { background-color: var(--color-surface-alt, #111827) !important; }
+.dark .bg-gray-100 { background-color: var(--color-surface, #1f2937) !important; }
+.dark .border-gray-100, .dark .border-gray-200, .dark .border-gray-300 { border-color: var(--color-border-app, #374151) !important; }

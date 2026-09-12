@@ -1,0 +1,3 @@
+group_name,subject_names,student_emails
+Группа ИС-21 (А),Математический анализ|Программирование на Python|Введение в ИИ,student_a1@university.local|student_a2@university.local|student_a3@university.local|student_a4@university.local|student_a5@university.local
+Группа ИС-22 (Б),Базы данных|Компьютерные сети|Введение в ИИ,student_b1@university.local|student_b2@university.local|student_b3@university.local|student_b4@university.local|student_b5@university.local

@@ -1,0 +1,785 @@
+/* ─── Examinator AI — Exam Module Styles ────────────────────────────────────
+   Эстетика: швейцарский академический минимализм.
+   Шрифт: IBM Plex Sans + IBM Plex Mono — единственная гарнитура с
+   характером университетской системы и отличной читаемостью.
+   Запоминается: вертикальная нить таймлайна слева — "нить экзамена".
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* ── Reset ────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+
+/* ── Layout Shell ─────────────────────────────────────────────────────────── */
+
+.chat-layout,
+.std-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+  background: rgb(var(--bg));
+}
+
+.chat-body,
+.std-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Top Bar ──────────────────────────────────────────────────────────────── */
+
+.chat-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 52px;
+  padding: 0 20px;
+  border-bottom: 1px solid rgb(var(--border));
+  background: rgb(var(--surface));
+  flex-shrink: 0;
+  gap: 16px;
+}
+
+.chat-topbar__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.chat-topbar__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.chat-topbar__menu-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+.chat-topbar__menu-btn:hover { opacity: 1; }
+
+.chat-topbar__menu-icon,
+.chat-topbar__menu-icon::before,
+.chat-topbar__menu-icon::after {
+  display: block;
+  width: 18px;
+  height: 1.5px;
+  background: rgb(var(--text));
+}
+.chat-topbar__menu-icon {
+  position: relative;
+}
+.chat-topbar__menu-icon::before,
+.chat-topbar__menu-icon::after {
+  content: '';
+  position: absolute;
+}
+.chat-topbar__menu-icon::before { top: -5px; }
+.chat-topbar__menu-icon::after  { top: 5px;  }
+
+.chat-topbar__title {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgb(var(--text-muted));
+}
+
+.chat-topbar__progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  max-width: 320px;
+}
+
+.chat-topbar__progress-bar {
+  flex: 1;
+  height: 2px;
+  background: rgb(var(--border));
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.chat-topbar__progress-fill {
+  height: 100%;
+  background: rgb(var(--primary));
+  border-radius: 1px;
+  transition: width 0.4s ease;
+}
+
+.chat-topbar__progress-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: rgb(var(--text-muted));
+  white-space: nowrap;
+}
+
+.chat-topbar__sync-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: rgb(var(--text-muted));
+  opacity: 0.7;
+}
+
+/* ── Sidebar Navigator ────────────────────────────────────────────────────── */
+
+.chat-nav {
+  width: 0;
+  overflow: hidden;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-right: 1px solid rgb(var(--border));
+  background: rgb(var(--surface));
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.chat-nav--open {
+  width: 280px;
+}
+
+.chat-nav__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid rgb(var(--border));
+  flex-shrink: 0;
+}
+
+.chat-nav__title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(var(--text-muted));
+}
+
+.chat-nav__count {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: rgb(var(--text-muted));
+}
+
+.chat-nav__list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--border)) transparent;
+}
+
+.chat-nav__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+  position: relative;
+}
+.chat-nav__item:hover { background: rgb(var(--surface-alt)); }
+
+.chat-nav__item--active {
+  background: rgb(var(--primary) / 0.07);
+}
+.chat-nav__item--active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgb(var(--primary));
+}
+
+.chat-nav__item-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: rgb(var(--text-muted));
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.chat-nav__item-text {
+  font-size: 13px;
+  line-height: 1.4;
+  color: rgb(var(--text));
+  flex: 1;
+}
+.chat-nav__item--active .chat-nav__item-text {
+  color: rgb(var(--primary));
+}
+
+.chat-nav__item-check {
+  font-size: 11px;
+  color: rgb(var(--success));
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.chat-nav__item--answered .chat-nav__item-num {
+  color: rgb(var(--success) / 0.8);
+}
+
+.chat-nav__footer {
+  padding: 16px 20px;
+  border-top: 1px solid rgb(var(--border));
+  flex-shrink: 0;
+}
+
+/* ── Submit Button ─────────────────────────────────────────────────────────── */
+
+.chat-submit-btn {
+  width: 100%;
+  padding: 10px 16px;
+  background: rgb(var(--primary));
+  color: rgb(var(--primary-fg));
+  border: none;
+  border-radius: 4px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+.chat-submit-btn:hover:not(:disabled) {
+  background: rgb(var(--primary-hover));
+}
+.chat-submit-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.chat-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Chat Feed ─────────────────────────────────────────────────────────────── */
+
+.chat-feed-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.chat-feed {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--border)) transparent;
+}
+
+.chat-feed__inner {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 32px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+
+  /* Вертикальная нить — "нить экзамена" */
+  position: relative;
+}
+
+.chat-feed__inner::before {
+  content: '';
+  position: absolute;
+  left: 39px;  /* Выровнено с пузырями */
+  top: 48px;
+  bottom: 24px;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgb(var(--border)) 5%,
+    rgb(var(--border)) 95%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+.chat-feed__item {
+  animation: feedItemIn 0.2s ease both;
+}
+
+@keyframes feedItemIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Interaction Bubbles ──────────────────────────────────────────────────── */
+
+.exam-bubble {
+  position: relative;
+  padding: 14px 18px;
+  border-radius: 6px;
+  max-width: 88%;
+  margin-bottom: 6px;
+}
+
+/* System / Question — левый пузырь */
+.exam-bubble--system {
+  background: rgb(var(--bubble-system));
+  margin-left: 0;
+  margin-right: auto;
+  border-left: 2px solid rgb(var(--primary) / 0.4);
+}
+
+/* User / Answer — правый пузырь */
+.exam-bubble--user {
+  background: rgb(var(--bubble-user));
+  color: rgb(var(--bubble-user-fg));
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.exam-bubble--typing {
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 64px;
+}
+
+.exam-bubble__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.exam-bubble__index {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgb(var(--primary));
+  font-weight: 500;
+}
+
+.exam-bubble__tag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  padding: 2px 6px;
+  border: 1px solid rgb(var(--border));
+  border-radius: 3px;
+  color: rgb(var(--text-muted));
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.exam-bubble__tag--formula {
+  border-color: rgb(var(--primary) / 0.3);
+  color: rgb(var(--primary));
+}
+
+.exam-bubble__text {
+  font-size: 15px;
+  line-height: 1.65;
+  color: inherit;
+}
+
+.exam-bubble--system .exam-bubble__text {
+  color: rgb(var(--text));
+}
+
+/* Sync status inside answer bubble */
+.exam-bubble__sync {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  opacity: 0.65;
+}
+
+.exam-bubble__sync-icon {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+}
+
+.exam-bubble__sync-label {
+  font-size: 11px;
+}
+
+.exam-bubble__sync--pending { opacity: 0.5; }
+.exam-bubble__sync--error   { color: rgb(var(--destructive)); opacity: 0.9; }
+.exam-bubble__sync--synced  { color: rgb(var(--success) / 0.9); }
+
+/* Formula block */
+.exam-bubble__formula {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: rgb(0 0 0 / 0.08);
+  border-radius: 4px;
+}
+.exam-bubble__formula-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+  display: block;
+  margin-bottom: 4px;
+}
+.exam-bubble__formula-code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+}
+
+/* ── System / Divider Messages ────────────────────────────────────────────── */
+
+.exam-system {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.exam-system__line {
+  flex: 1;
+  height: 1px;
+  background: rgb(var(--border));
+}
+
+.exam-system__text {
+  font-size: 12px;
+  color: rgb(var(--text-muted));
+  text-align: center;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.exam-system--info    .exam-system__text { color: rgb(var(--text-muted)); }
+.exam-system--success .exam-system__text { color: rgb(var(--success)); }
+.exam-system--warning .exam-system__text { color: rgb(var(--warning)); }
+.exam-system--error   .exam-system__text { color: rgb(var(--destructive)); }
+
+/* ── Status / Processing ──────────────────────────────────────────────────── */
+
+.exam-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.exam-status__label {
+  font-size: 13px;
+  color: rgb(var(--text-muted));
+  font-style: italic;
+}
+
+.exam-status__spinner,
+.chat-processing__spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid rgb(var(--border));
+  border-top-color: rgb(var(--primary));
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Typing Dots ─────────────────────────────────────────────────────────── */
+
+.typing-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgb(var(--text-muted));
+  animation: typingPulse 1.4s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingPulse {
+  0%, 80%, 100% { transform: scale(0.8); opacity: 0.4; }
+  40%           { transform: scale(1);   opacity: 1; }
+}
+
+/* ── Processing / Completed States ──────────────────────────────────────── */
+
+.chat-processing {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  color: rgb(var(--text-muted));
+  font-size: 14px;
+  justify-content: center;
+}
+
+.chat-completed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.chat-completed__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 1.5px solid rgb(var(--success));
+  border-radius: 50%;
+  font-size: 20px;
+  color: rgb(var(--success));
+}
+
+.chat-completed p {
+  font-size: 15px;
+  color: rgb(var(--text-muted));
+  max-width: 360px;
+}
+
+/* ── Input Area ───────────────────────────────────────────────────────────── */
+
+.chat-input-area {
+  border-top: 1px solid rgb(var(--border));
+  background: rgb(var(--surface));
+  padding: 12px 24px 16px;
+  flex-shrink: 0;
+}
+
+/* Command Chips */
+.chat-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.chat-chip {
+  padding: 4px 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  border: 1px solid rgb(var(--border));
+  border-radius: 3px;
+  background: none;
+  color: rgb(var(--text-muted));
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+  letter-spacing: 0.02em;
+}
+.chat-chip:hover {
+  border-color: rgb(var(--primary));
+  color: rgb(var(--primary));
+}
+.chat-chip--muted {
+  opacity: 0.6;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 10px 14px;
+  background: rgb(var(--bg-muted));
+  border: 1px solid rgb(var(--border));
+  border-radius: 4px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 14px;
+  color: rgb(var(--text));
+  resize: none;
+  line-height: 1.5;
+  transition: border-color 0.15s;
+  outline: none;
+}
+.chat-input:focus {
+  border-color: rgb(var(--primary));
+}
+.chat-input::placeholder {
+  color: rgb(var(--text-muted));
+  opacity: 0.6;
+}
+.chat-input:disabled {
+  opacity: 0.5;
+}
+
+.chat-send-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: rgb(var(--primary));
+  color: rgb(var(--primary-fg));
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, transform 0.1s;
+}
+.chat-send-btn:hover:not(:disabled) {
+  background: rgb(var(--primary-hover));
+}
+.chat-send-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+.chat-send-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Standard View ────────────────────────────────────────────────────────── */
+
+.std-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 40px 48px;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--border)) transparent;
+}
+
+.std-question-panel {
+  max-width: 680px;
+  animation: feedItemIn 0.2s ease both;
+}
+
+.std-question-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.std-question-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: rgb(var(--text-muted));
+  letter-spacing: 0.06em;
+}
+
+.std-question-text {
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: rgb(var(--text));
+  margin-bottom: 32px;
+  letter-spacing: -0.01em;
+}
+
+.std-answer-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.std-answer-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgb(var(--text-muted));
+}
+
+.std-answer-textarea,
+.std-answer-input {
+  width: 100%;
+  padding: 14px 16px;
+  background: rgb(var(--surface));
+  border: 1px solid rgb(var(--border));
+  border-radius: 4px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 15px;
+  color: rgb(var(--text));
+  line-height: 1.6;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.std-answer-textarea { resize: vertical; min-height: 160px; }
+.std-answer-input    { font-family: 'IBM Plex Mono', monospace; font-size: 14px; }
+
+.std-answer-textarea:focus,
+.std-answer-input:focus {
+  border-color: rgb(var(--primary));
+}
+
+.std-nav-btns {
+  display: flex;
+  gap: 12px;
+}
+
+.std-nav-btn {
+  padding: 10px 20px;
+  background: none;
+  border: 1px solid rgb(var(--border));
+  border-radius: 4px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  color: rgb(var(--text));
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.std-nav-btn:hover:not(:disabled) {
+  border-color: rgb(var(--primary));
+  color: rgb(var(--primary));
+}
+.std-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.std-nav-btn--primary {
+  background: rgb(var(--primary));
+  border-color: rgb(var(--primary));
+  color: rgb(var(--primary-fg));
+}
+.std-nav-btn--primary:hover:not(:disabled) {
+  background: rgb(var(--primary-hover));
+  border-color: rgb(var(--primary-hover));
+  color: rgb(var(--primary-fg));
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgb(var(--border)); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgb(var(--text-muted) / 0.5); }
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .chat-nav--open { width: 240px; }
+  .chat-feed__inner { padding: 20px 16px; }
+  .chat-feed__inner::before { display: none; }
+  .exam-bubble { max-width: 94%; }
+  .std-main { padding: 24px 20px; }
+  .chat-topbar__progress-wrap { display: none; }
+}
+
+
+/* ── DraftPreviewBubble cursor blink ────────────────────────────────────────── */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}

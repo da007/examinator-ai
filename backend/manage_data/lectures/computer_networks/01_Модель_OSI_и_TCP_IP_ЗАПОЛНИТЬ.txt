@@ -1,0 +1,5 @@
+Файл-заготовка лекции: 01_Модель_OSI_и_TCP_IP.docx
+Предмет: computer_networks
+
+Заполните лекционным материалом и переименуйте в .docx
+Поместите в backend/manage_data/lectures/computer_networks/ и запустите system_manager.py

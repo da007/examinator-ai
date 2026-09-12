@@ -1,0 +1,91 @@
+/* ─── Design Tokens ──────────────────────────────────────────────────────────
+   Tailwind dark: классы + CSS переменные = переключение темы без ThemeContext.
+   Добавить новую тему = добавить data-theme="..." правило.
+   Все цвета через rgb(var(--token)) — совместимо с Tailwind opacity modifier.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@layer base {
+  :root {
+    /* ── Backgrounds ────────────────────────────────────────────────────── */
+    --bg:           255 255 255;
+    --bg-muted:     248 249 250;
+    --surface:      255 255 255;
+    --surface-alt:  241 243 245;
+
+    /* ── Borders & Dividers ─────────────────────────────────────────────── */
+    --border:       226 228 233;
+    --border-focus: 99  102 241;
+
+    /* ── Text ───────────────────────────────────────────────────────────── */
+    --text:         17  24  39;
+    --text-muted:   107 114 128;
+    --text-inverse: 255 255 255;
+
+    /* ── Primary (Indigo) ───────────────────────────────────────────────── */
+    --primary:      99  102 241;
+    --primary-hover:79  70  229;
+    --primary-fg:   255 255 255;
+
+    /* ── Exam-specific ──────────────────────────────────────────────────── */
+    --bubble-system:  241 243 245;   /* Пузырь от "бота" */
+    --bubble-user:    99  102 241;   /* Пузырь студента */
+    --bubble-user-fg: 255 255 255;
+
+    /* ── Status ─────────────────────────────────────────────────────────── */
+    --success:      34  197 94;
+    --warning:      234 179 8;
+    --destructive:  239 68  68;
+
+    /* ── Spacing / Radius ───────────────────────────────────────────────── */
+    --radius:       0.75rem;
+    --radius-sm:    0.375rem;
+    --radius-lg:    1rem;
+  }
+
+  /* ── Dark Theme ───────────────────────────────────────────────────────── */
+  .dark {
+    --bg:           10  10  15;
+    --bg-muted:     17  17  27;
+    --surface:      20  20  31;
+    --surface-alt:  30  30  46;
+
+    --border:       45  45  65;
+    --border-focus: 129 140 248;
+
+    --text:         241 245 249;
+    --text-muted:   148 163 184;
+    --text-inverse: 10  10  15;
+
+    --primary:      129 140 248;
+    --primary-hover:165 180 252;
+    --primary-fg:   10  10  15;
+
+    --bubble-system:  30  30  46;
+    --bubble-user:    99  102 241;
+    --bubble-user-fg: 255 255 255;
+
+    --success:      74  222 128;
+    --warning:      250 204 21;
+    --destructive:  248 113 113;
+  }
+}
+
+/* ── Tailwind Token Utilities ─────────────────────────────────────────────── */
+/* Используем inline style или @apply для token-based классов                  */
+.bg-app         { background: rgb(var(--bg)); }
+.bg-surface     { background: rgb(var(--surface)); }
+.bg-surface-alt { background: rgb(var(--surface-alt)); }
+.bg-muted-app   { background: rgb(var(--bg-muted)); }
+.text-app       { color: rgb(var(--text)); }
+.text-muted-app { color: rgb(var(--text-muted)); }
+.border-app     { border-color: rgb(var(--border)); }
+.bubble-system  { background: rgb(var(--bubble-system)); color: rgb(var(--text)); }
+.bubble-user    { background: rgb(var(--bubble-user)); color: rgb(var(--bubble-user-fg)); }
+/* ── Scrollbar utilities ─────────────────────────────────────────────────── */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+.custom-scrollbar { scrollbar-width: thin; scrollbar-color: rgb(var(--border)) transparent; }
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgb(var(--border)); border-radius: 2px; }
