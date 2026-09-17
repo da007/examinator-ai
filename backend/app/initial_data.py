@@ -74,8 +74,6 @@ async def init_s3() -> None:
             await s3.head_bucket(Bucket=settings.s3.BUCKET_NAME)
             logger.info(f"S3 Bucket '{settings.s3.BUCKET_NAME}' already exists.")
         except ClientError as e:
-            # ИСПРАВЛЕНО: было голый except: — маскировал любые ошибки включая сетевые.
-            # Теперь ловим только ClientError (бакет не найден = 404/NoSuchBucket).
             error_code = e.response["Error"]["Code"]
             if error_code in ("404", "NoSuchBucket"):
                 await s3.create_bucket(Bucket=settings.s3.BUCKET_NAME)

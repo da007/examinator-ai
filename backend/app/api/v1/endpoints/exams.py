@@ -33,61 +33,62 @@ async def start_exam(
     Инициализация экзаменационной сессии. 
     Теперь возвращает вопросы сразу при старте.
     """
-    # FIX-5: Проверка доступа студента к дисциплине через группы.
-    # Если ни одна группа ещё не привязана к этому subject — работаем в
-    # «открытом» режиме и пускаем любого студента той же организации.
-    if current_user.role == UserRole.STUDENT:
-        from app.models.group import group_students, group_subjects
-        from app.models.lecture import Lecture as LectureModel
-        lec = await db.get(LectureModel, obj_in.lecture_id)
-        if lec:
-            # Сначала проверяем: есть ли вообще группы, привязанные к subject
-            any_group_q = (
-                select(group_subjects.c.subject_id)
-                .where(group_subjects.c.subject_id == lec.subject_id)
-                .limit(1)
-            )
-            subject_has_groups = (await db.execute(any_group_q)).scalar_one_or_none()
-
-            if subject_has_groups:
-                # Группы настроены — проверяем членство студента
-                access_q = (
-                    select(group_students.c.student_id)
-                    .join(group_subjects, group_students.c.group_id == group_subjects.c.group_id)
-                    .where(
-                        group_students.c.student_id == current_user.id,
-                        group_subjects.c.subject_id == lec.subject_id,
-                    )
-                    .limit(1)
-                )
-                has_access = (await db.execute(access_q)).scalar_one_or_none()
-                if not has_access:
-                    raise HTTPException(
-                        status_code=403,
-                        detail="Нет доступа к данной дисциплине. Обратитесь к преподавателю."
-                    )
-            else:
-                # Групп нет — проверяем только принадлежность к организации
-                if lec.org_id != current_user.org_id:
-                    raise HTTPException(status_code=403, detail="Нет доступа к данной дисциплине")
-
-    lec = await db.get(LectureModel, obj_in.lecture_id)
+    # Один раз достаём лекцию в начале — используем её и для проверки доступа студента,
+    # и для общей проверки статуса ниже (было: два отдельных db.get, один из них с багом)
+    lec = await db.get(Lecture, obj_in.lecture_id)
     if not lec:
         raise HTTPException(status_code=404, detail="Лекция не найдена")
+
+    # Проверка доступа актуальна только для студентов (преподаватель/админ ограничений не имеют)
+    if current_user.role == UserRole.STUDENT:
+        from app.models.group import group_students, group_subjects
+
+        # Проверяем, привязана ли дисциплина хоть к каким-то группам вообще
+        any_group_q = (
+            select(group_subjects.c.subject_id)
+            .where(group_subjects.c.subject_id == lec.subject_id)
+            .limit(1)
+        )
+        subject_has_groups = (await db.execute(any_group_q)).scalar_one_or_none()
+
+        if subject_has_groups:
+            # Если дисциплина привязана к группам — доступ только у студентов из этих групп
+            access_q = (
+                select(group_students.c.student_id)
+                .join(group_subjects, group_students.c.group_id == group_subjects.c.group_id)
+                .where(
+                    group_students.c.student_id == current_user.id,
+                    group_subjects.c.subject_id == lec.subject_id,
+                )
+                .limit(1)
+            )
+            has_access = (await db.execute(access_q)).scalar_one_or_none()
+            if not has_access:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Нет доступа к данной дисциплине. Обратитесь к преподавателю."
+                )
+        else:
+            # Иначе (групп нет) — достаточно совпадения организации
+            if lec.org_id != current_user.org_id:
+                raise HTTPException(status_code=403, detail="Нет доступа к данной дисциплине")
+
     if lec.status != LectureStatus.PUBLISHED:
         raise HTTPException(
             status_code=403,
             detail="Лекция не опубликована или ещё обрабатывается"
         )
 
+    # Создание сессии и генерация набора вопросов (логика в сервисе)
     session = await exam_service.start_session(db, student_id=current_user.id, obj_in=obj_in)
     
-    # Подгружаем объекты вопросов, чтобы студент их увидел
+    # Подгружаем сами вопросы по id из сессии
     questions_query = select(Question).where(Question.id.in_(session.question_ids))
     q_result = await db.execute(questions_query)
     questions = q_result.scalars().all()
     
-    # Сортируем согласно порядку в сессии
+    # Восстанавливаем порядок вопросов, заданный в session.question_ids
+    # (select IN не гарантирует порядок результатов)
     questions_map = {str(q.id): q for q in questions}
     sorted_questions = [questions_map[str(qid)] for qid in session.question_ids if str(qid) in questions_map]
     return ExamSessionRead(
@@ -112,6 +113,7 @@ async def save_draft(
     Автосохранение ответов (Debounce на фронтенде).
     Требует корректную версию для Optimistic Locking.
     """
+    # Вся логика (проверка владельца, сверка version) — внутри сервиса
     return await exam_service.update_draft(
         db, session_id=session_id, student_id=current_user.id, obj_in=obj_in
     )
@@ -143,6 +145,7 @@ async def get_exam_result(
     from app.models.lecture import Lecture
 
     # 1. Достаем сессию БЕЗ жесткого фильтра по student_id
+    # (фильтр по владельцу делаем вручную ниже, чтобы разграничить права студента и преподавателя)
     query = (
         select(ExamSession)
         .where(ExamSession.id == session_id)
@@ -160,6 +163,7 @@ async def get_exam_result(
     if current_user.role == UserRole.STUDENT and not current_user.is_superuser:
         # Студент может смотреть только свои работы
         if session.student_id != current_user.id:
+            # 404, а не 403 — чтобы не палить студенту сам факт существования чужой сессии
             raise HTTPException(status_code=404, detail="Результаты не найдены")
     else:
         # Преподаватель/Админ могут смотреть, если лекция из их организации
@@ -167,18 +171,19 @@ async def get_exam_result(
         if lecture and lecture.org_id != current_user.org_id and not current_user.is_superuser:
             raise HTTPException(status_code=403, detail="Доступ к данным другой организации запрещен")
 
-    # 3. Проверка статуса проверки
+    # 3. Проверка статуса проверки — пока ИИ считает баллы, результат ещё не готов
     if session.status == SessionStatus.PROCESSING:
         raise HTTPException(
             status_code=202, 
             detail="Ваша работа еще проверяется ИИ. Пожалуйста, подождите."
         )
 
-    # 4. Рассчитываем суммарный балл
+    # 4. Рассчитываем суммарный балл — среднее по всем уже оцененным ответам
+    # (ответы без final_score, например неотвеченные, не учитываются)
     valid_scores = [a.final_score for a in session.answers if a.final_score is not None]
     total_score = sum(valid_scores) / len(valid_scores) if valid_scores else 0.0
     
-    # 5. Формируем список ответов
+    # 5. Формируем список ответов для ответа API, подтягивая эталонный ответ из вопроса
     answers_out = []
     for answer in session.answers:
         answers_out.append(StudentAnswerRead(
@@ -205,11 +210,11 @@ async def get_my_sessions(
     current_user: User = Depends(dependencies.get_current_user),
 ) -> Any:
     """Получение истории всех экзаменационных сессий текущего студента."""
+    # Всегда фильтруем по текущему юзеру — эндпоинт возвращает только "свою" историю
     query = select(ExamSession).where(ExamSession.student_id == current_user.id).order_by(ExamSession.start_time.desc())
     result = await db.execute(query)
     sessions = result.scalars().all()
     
-    # Мапим в схему (вопросы здесь можно не подгружать для списка истории, чтобы было быстрее)
     return [
         ExamSessionRead(
             id=s.id,
@@ -232,10 +237,9 @@ async def get_session(
     """
     Получение данных сессии. Доступно студенту-владельцу или персоналу организации.
     """
-    # 1. Базовый запрос
     query = select(ExamSession).where(ExamSession.id == session_id)
     
-    # 2. Если не админ/преподаватель, фильтруем по student_id
+    # Студенту сразу сужаем запрос до его собственных сессий (на уровне SQL)
     if current_user.role == UserRole.STUDENT and not current_user.is_superuser:
         query = query.where(ExamSession.student_id == current_user.id)
     
@@ -245,16 +249,14 @@ async def get_session(
     if not session:
         raise HTTPException(status_code=404, detail="Сессия не найдена")
 
-    # Проверка принадлежности к организации для персонала
-    # (Студент уже прошел проверку выше через student_id)
+    # Для не-студентов (преподаватель/админ) дополнительно проверяем принадлежность к организации
     if current_user.role != UserRole.STUDENT:
-        # Нам нужно проверить org_id лекции этой сессии
         from app.models.lecture import Lecture
         lecture = await db.get(Lecture, session.lecture_id)
         if lecture and lecture.org_id != current_user.org_id and not current_user.is_superuser:
             raise HTTPException(status_code=403, detail="Доступ к данным другой организации запрещен")
 
-    # 3. Подгружаем объекты вопросов
+    # Подгружаем вопросы сессии и восстанавливаем их порядок (как и в /start)
     questions_query = select(Question).where(Question.id.in_(session.question_ids))
     q_result = await db.execute(questions_query)
     questions = q_result.scalars().all()

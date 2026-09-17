@@ -9,7 +9,7 @@ from alembic import context
  
 from app.core.config import settings
 from app.db.base import Base
-from app.models import *  # noqa — нужно чтобы Alembic видел все модели
+from app.models import *  
  
 config = context.config
  
@@ -20,8 +20,6 @@ target_metadata = Base.metadata
  
  
 def run_migrations_offline() -> None:
-    # ИСПРАВЛЕНО: было settings.DATABASE_URL — такого поля нет в корневом Settings.
-    # Правильно: settings.postgres.DATABASE_URL
     url = str(settings.postgres.DATABASE_URL)
     context.configure(
         url=url,
@@ -43,7 +41,6 @@ def do_run_migrations(connection: Connection) -> None:
  
  
 async def run_async_migrations() -> None:
-    # ИСПРАВЛЕНО: было settings.DATABASE_URL — правильно settings.postgres.DATABASE_URL
     configuration = config.get_section(config.config_ini_section, {})
     configuration["sqlalchemy.url"] = str(settings.postgres.DATABASE_URL)
  

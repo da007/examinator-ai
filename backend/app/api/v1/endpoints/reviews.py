@@ -2,9 +2,9 @@ import uuid
 from typing import Any, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, and_ # <-- ДОБАВЛЕНО
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload # <-- ДОБАВЛЕНО для оптимизации запросов
+from sqlalchemy.orm import joinedload
 from app.api import dependencies
 from app.models.user import User, UserRole
 from app.models.exam import ExamSession, SessionStatus
@@ -17,7 +17,7 @@ from app.schemas.review import (
     ManualAnswerCorrection,
     PendingReviewList
 )
-from app.schemas.exam import StudentAnswerRead  # <-- ДОБАВИТЬ ЭТОТ ИМПОРТ
+from app.schemas.exam import StudentAnswerRead
 from app.services.review_service import review_service
 
 router = APIRouter()
@@ -38,6 +38,7 @@ async def get_pending_reviews(
     )
     
     # Маппинг в упрощенную схему для дашборда
+    # (средняя уверенность модели по сессии — чтобы сортировать/приоритизировать проверку)
     return [
         PendingReviewList(
             session_id=s.id,
@@ -57,6 +58,7 @@ async def correct_student_answer(
     """
     Ручное переопределение оценки ИИ преподавателем.
     """
+    # Вся логика (проверка владения сессией, пересчёт итогового балла) — внутри сервиса
     return await review_service.correct_answer(
         db, correction=correction, teacher_id=current_user.id
     )
@@ -104,6 +106,7 @@ async def get_my_appeals(
     from sqlalchemy import select
     from app.models.appeal import StudentAppeal
     
+    # Только апелляции текущего студента — фильтр по student_id
     query = select(StudentAppeal).where(StudentAppeal.student_id == current_user.id)
     result = await db.execute(query)
     return result.scalars().all()
@@ -117,35 +120,15 @@ async def get_all_org_appeals(
     from app.models.appeal import StudentAppeal
     from app.models.lecture import Lecture
     from app.models.exam import ExamSession
-
-    # Фильтруем апелляции через связь с лекциями организации
-    query = (
-        select(StudentAppeal)
-        .join(ExamSession, StudentAppeal.session_id == ExamSession.id)
-        .join(Lecture, ExamSession.lecture_id == Lecture.id)
-        .where(Lecture.org_id == current_user.org_id)
-        .order_by(StudentAppeal.created_at.desc())
-    )
-    result = await db.execute(query)
-    return result.scalars().all()
-
-@router.get("/appeals", response_model=List[AppealRead])
-async def get_all_org_appeals(
-    db: AsyncSession = Depends(dependencies.get_db),
-    current_user: User = Depends(dependencies.RoleChecker([UserRole.TEACHER, UserRole.ADMIN, UserRole.TA])),
-) -> Any:
-    """Получение всех апелляций организации для преподавателя."""
-    from app.models.appeal import StudentAppeal
-    from app.models.lecture import Lecture
-    from app.models.exam import ExamSession
     from sqlalchemy.orm import joinedload
 
-    # 1. Запрос с подгрузкой студента (joinedload)
+    # 1. Запрос с подгрузкой студента (joinedload), чтобы не делать отдельный запрос
+    # на каждого студента при формировании student_name/student_email ниже
     query = (
         select(StudentAppeal)
         .join(ExamSession, StudentAppeal.session_id == ExamSession.id)
         .join(Lecture, ExamSession.lecture_id == Lecture.id)
-        .options(joinedload(StudentAppeal.student)) # Важно для доступа к имени/email
+        .options(joinedload(StudentAppeal.student))
         .where(Lecture.org_id == current_user.org_id)
         .order_by(StudentAppeal.created_at.desc())
     )
@@ -153,6 +136,7 @@ async def get_all_org_appeals(
     appeals = result.scalars().all()
 
     # 2. Мапим вручную, чтобы заполнить student_name и student_email
+    # (эти поля есть в AppealRead, но их нет в самой модели StudentAppeal)
     return [
         AppealRead(
             **{c.name: getattr(a, c.name) for c in a.__table__.columns},

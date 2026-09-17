@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 from typing import List, Optional, Sequence
 from sqlalchemy import select, and_, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -65,7 +66,7 @@ class ReviewService:
         if "audit" not in answer.ai_score:
             answer.ai_score["audit"] = []
             
-        # Добавляем запись
+        # Добавляем запись в историю правок: кто, когда, старый/новый балл и комментарий
         answer.ai_score["audit"].append({
             "teacher_id": str(teacher_id),
             "old_score": old_score,
@@ -73,7 +74,8 @@ class ReviewService:
             "comment": correction.teacher_comment
         })
 
-        # ГЛАВНЫЙ ФИКС: Явно помечаем поле как измененное
+        # ai_score — JSON-поле; SQLAlchemy не отслеживает мутации внутри словаря автоматически,
+        # поэтому явно помечаем поле изменённым, иначе изменение не попадёт в UPDATE
         flag_modified(answer, "ai_score")
 
         await db.commit()
@@ -85,7 +87,7 @@ class ReviewService:
     ) -> StudentAppeal:
         """Создание апелляции с детальной проверкой состояния."""
         
-        # 1. Ищем сессию
+        # 1. Ищем сессию, принадлежащую именно этому студенту
         session_query = select(ExamSession).where(and_(
             ExamSession.id == obj_in.session_id,
             ExamSession.student_id == student_id
@@ -103,7 +105,7 @@ class ReviewService:
                 detail=f"Апелляция невозможна: текущий статус сессии '{session.status}'. Дождитесь завершения проверки."
             )
 
-        # 3. Проверяем, нет ли уже открытой апелляции
+        # 3. Проверяем, нет ли уже открытой апелляции по этой же сессии
         existing_query = select(StudentAppeal).where(and_(
             StudentAppeal.session_id == obj_in.session_id,
             StudentAppeal.status == AppealStatus.PENDING
@@ -111,7 +113,7 @@ class ReviewService:
         if (await db.execute(existing_query)).scalar_one_or_none():
             raise HTTPException(status_code=400, detail="Апелляция по этому экзамену уже находится на рассмотрении")
 
-        # 4. Создаем запись
+        # 4. Создаем запись со статусом PENDING по умолчанию
         db_appeal = StudentAppeal(
             session_id=obj_in.session_id,
             student_id=student_id,
@@ -129,6 +131,7 @@ class ReviewService:
         """
         Рассмотрение апелляции преподавателем.
         """
+        # Join через сессию и лекцию — чтобы сразу отфильтровать апелляции чужой организации
         query = (
             select(StudentAppeal)
             .join(ExamSession)
@@ -142,14 +145,14 @@ class ReviewService:
         if not appeal:
             raise HTTPException(status_code=404, detail="Апелляция не найдена")
 
+        # Повторное рассмотрение уже решённой апелляции запрещено
         if appeal.status != AppealStatus.PENDING:
             raise HTTPException(status_code=400, detail="Эта апелляция уже была рассмотрена ранее")
 
         appeal.status = obj_in.status
         appeal.teacher_comment = obj_in.teacher_comment
         
-        # Если апелляция принята, это сигнал, что оценки были (или будут) исправлены вручную.
-        # Мы можем добавить системный лог в метаданные сессии
+        # Если апелляция одобрена — фиксируем время решения в integrity_details сессии (для аудита)
         if obj_in.status == AppealStatus.ACCEPTED:
             if not appeal.session.integrity_details:
                 appeal.session.integrity_details = {}

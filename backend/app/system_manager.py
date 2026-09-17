@@ -91,7 +91,7 @@ async def handle_users(db: AsyncSession, mode: str, org_id: uuid.UUID):
                     is_active=True
                 )
                 db.add(new_user)
-                await db.flush() # <--- ПРИНУДИТЕЛЬНАЯ ЗАПИСЬ СРАЗУ
+                await db.flush() 
 
         elif mode == "to_update":
             if not existing:
@@ -128,7 +128,7 @@ async def handle_subjects_and_lectures(db: AsyncSession, mode: str, org_id: uuid
                 
                 subject = Subject(name=row['name'], description=row.get('description'), org_id=org_id, teacher_id=teacher.id)
                 db.add(subject)
-                await db.flush() # <--- ПРИНУДИТЕЛЬНАЯ ЗАПИСЬ СРАЗУ
+                await db.flush() 
 
             # Обработка лекций для этого предмета (только при добавлении/обновлении)
             if 'lecture_folder' in row:
@@ -174,10 +174,10 @@ async def main_menu():
             await db.commit()
             print(f"\n✅ Успешно завершено!")
     except DataValidationError as e:
-        print(f"\n❌ ОШИБКА ВАЛИДАЦИИ: {e}")
-        print("🛑 Изменения не применены.")
+        print(f"\nОШИБКА ВАЛИДАЦИИ: {e}")
+        print("Изменения не применены.")
     except Exception as e:
-        print(f"\n💥 КРИТИЧЕСКАЯ ОШИБКА: {e}")
+        print(f"\nКРИТИЧЕСКАЯ ОШИБКА: {e}")
         raise e
 
 if __name__ == "__main__":

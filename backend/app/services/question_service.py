@@ -67,8 +67,6 @@ class QuestionService:
         """
         Обновление вопроса.
         """
-        # Pydantic v2 model_dump() автоматически превращает вложенные списки схем в списки словарей.
-        # Поэтому update_data["key_theses"] — это уже готовый list[dict], пригодный для JSONB.
         update_data = obj_in.model_dump(exclude_unset=True)
 
         for field, value in update_data.items():
@@ -77,8 +75,6 @@ class QuestionService:
         db.add(db_obj)
         await db.commit()
         
-        # Обязательно делаем refresh, чтобы асинхронно подтянуть новое значение updated_at из БД
-        # Это предотвратит ошибку MissingGreenlet при формировании ответа сервером.
         await db.refresh(db_obj)
         
         return db_obj
@@ -105,11 +101,9 @@ class QuestionService:
         if lecture:
             now = datetime.now(timezone.utc)
             
-            # Логика: если время начала не задано — открываем прямо сейчас
             if not lecture.open_from:
                 lecture.open_from = now
                 
-            # Логика: если дедлайн не задан — ставим +24 часа от момента публикации
             if not lecture.deadline_at:
                 lecture.deadline_at = lecture.open_from + timedelta(hours=24)
             

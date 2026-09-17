@@ -42,6 +42,5 @@ class Base(DeclarativeBase):
         comment="Дата и время последнего обновления"
     )
 
-    # Полезный метод для отладки, который выводит содержимое объекта
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}(id={self.id})>"

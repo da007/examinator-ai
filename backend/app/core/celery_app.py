@@ -17,9 +17,9 @@ celery.conf.update(
     
     # Регистрация всех модулей с задачами
     include=[
-        "app.worker.tasks",           # Парсинг и генерация (Спринт 2-3)
-        "app.worker.grading_tasks",   # Оценка HGC (Спринт 4)
-        "app.worker.maintenance_tasks" # [NEW] Архивация и очистка (Спринт 5)
+        "app.worker.tasks",           
+        "app.worker.grading_tasks",   
+        "app.worker.maintenance_tasks" 
     ],
 )
 
@@ -28,7 +28,6 @@ celery.conf.task_acks_late = True
 celery.conf.worker_prefetch_multiplier = 1
 
 # Опционально: Настройка периодических задач (Celery Beat)
-# В реальном продакшене здесь настраивается запуск anonymize_old_sessions_task раз в неделю
 celery.conf.beat_schedule = {
     "anonymize-every-sunday": {
         "task": "anonymize_old_sessions_task",

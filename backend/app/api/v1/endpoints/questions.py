@@ -1,10 +1,12 @@
 import uuid
 from typing import Any, List
 from fastapi import APIRouter, Depends, HTTPException, status, Response
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import dependencies
 from app.models.user import User, UserRole
+from app.models.lecture import Lecture
 from app.schemas.question import QuestionRead, QuestionUpdate
 from app.services.question_service import question_service
 
@@ -17,6 +19,7 @@ async def read_questions_by_lecture(
     current_user: User = Depends(dependencies.RoleChecker([UserRole.TEACHER, UserRole.ADMIN])),
 ) -> Any:
     """Получение всех вопросов лекции для модерации."""
+    # Проверка прав (org_id) — внутри сервиса
     questions = await question_service.get_questions_by_lecture(
         db, lecture_id=lecture_id, org_id=current_user.org_id
     )
@@ -30,6 +33,7 @@ async def update_question(
     current_user: User = Depends(dependencies.RoleChecker([UserRole.TEACHER, UserRole.ADMIN])),
 ) -> Any:
     """Обновление вопроса."""
+    # get_question_safe сразу фильтрует по org_id — чужой вопрос вернётся как None
     question = await question_service.get_question_safe(
         db, question_id=question_id, org_id=current_user.org_id
     )
@@ -71,7 +75,7 @@ async def trigger_recalculation(
     if not question:
         raise HTTPException(status_code=404, detail="Вопрос не найден")
 
-    # Запуск фоновой задачи
+    # Запуск фоновой задачи — пересчёт идёт асинхронно, эндпоинт не ждёт результата
     from app.worker.grading_tasks import recalculate_scores_for_question_task
     recalculate_scores_for_question_task.delay(str(question_id))
 
@@ -85,6 +89,11 @@ async def create_manual_question(
     current_user: User = Depends(dependencies.RoleChecker([UserRole.TEACHER, UserRole.ADMIN])),
 ) -> Any:
     """Ручное создание вопроса для лекции."""
+    # 0. Проверяем, что лекция существует и принадлежит организации пользователя
+    lecture = await db.get(Lecture, lecture_id)
+    if not lecture or (lecture.org_id != current_user.org_id and not current_user.is_superuser):
+        raise HTTPException(status_code=404, detail="Лекция не найдена")
+
     # 1. Находим первый попавшийся чанк лекции, чтобы привязать вопрос (т.к. chunk_id обязателен в БД)
     from app.models.chunk import Chunk
     chunk_query = select(Chunk).where(Chunk.lecture_id == lecture_id).limit(1)

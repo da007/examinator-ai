@@ -7,12 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.core.config import settings
-from app.db.session import get_db  # реэкспортируем, не определяем заново
+from app.db.session import get_db  
 from app.models.user import User, UserRole
 from app.schemas.token import TokenPayload
 
 # Указываем FastAPI, где брать токен. 
-# tokenUrl должен совпадать с эндпоинтом логина, который мы напишем позже.
 reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl=f"{settings.project.API_V1_STR}/auth/login"
 )

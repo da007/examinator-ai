@@ -18,12 +18,10 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Добавляем новые колонки
     op.add_column('user', sa.Column('phone', sa.String(length=255), nullable=True, comment='Номер телефона'))
     op.add_column('user', sa.Column('bio', sa.Text(), nullable=True, comment='О себе / Регалии'))
 
 
 def downgrade() -> None:
-    # Удаляем колонки при откате
     op.drop_column('user', 'bio')
     op.drop_column('user', 'phone')

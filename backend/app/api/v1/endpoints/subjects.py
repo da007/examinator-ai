@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.api import dependencies
-from app.models.user import User, UserRole, UserRole
+from app.models.user import User, UserRole
 from app.models.subject import Subject
 from app.schemas.subject import SubjectRead
 
@@ -17,7 +17,8 @@ checker_is_staff = dependencies.RoleChecker([UserRole.TEACHER, UserRole.ADMIN, U
 @router.get("/", response_model=List[SubjectRead])
 async def read_subjects(
     db: AsyncSession = Depends(dependencies.get_db),
-    current_user: User = Depends(dependencies.get_current_user), # <--- ТЕПЕРЬ СТУДЕНТ ТОЖЕ МОЖЕТ ЧИТАТЬ
+    # Доступ открыт любому залогиненному юзеру своей организации, включая студентов
+    current_user: User = Depends(dependencies.get_current_user),
 ) -> Any:
     """
     Получение списка всех дисциплин организации.
@@ -26,7 +27,7 @@ async def read_subjects(
     from sqlalchemy.orm import joinedload
     query = (
         select(Subject)
-        .options(joinedload(Subject.teacher)) # Подгружаем юзера-преподавателя
+        .options(joinedload(Subject.teacher)) # Подгружаем юзера-преподавателя одним запросом
         .where(Subject.org_id == current_user.org_id)
         .order_by(Subject.name)
     )
@@ -37,6 +38,7 @@ async def read_subjects(
 async def read_subject(
     subject_id: uuid.UUID,
     db: AsyncSession = Depends(dependencies.get_db),
+    # Доступ только персоналу (студент сюда не попадёт) — в отличие от списка выше
     current_user: User = Depends(checker_is_staff),
 ) -> Any:
     """Детальная информация о конкретной дисциплине."""
@@ -47,6 +49,7 @@ async def read_subject(
     if not subject:
         raise HTTPException(status_code=404, detail="Дисциплина не найдена")
     
+    # Multi-tenancy: доступ только к дисциплине своей организации (или суперпользователю)
     if subject.org_id != current_user.org_id and not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
         

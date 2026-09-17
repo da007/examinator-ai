@@ -10,7 +10,7 @@ from app.schemas.base import APIModel
 class LectureBase(APIModel):
     title: str = Field(..., min_length=3, max_length=255)
     org_id: uuid.UUID
-    subject_id: uuid.UUID  # <-- ДОБАВЛЕНО
+    subject_id: uuid.UUID
 
 class LectureCreate(LectureBase):
     teacher_id: Optional[uuid.UUID] = None

@@ -10,7 +10,6 @@ _session_maker: Optional[async_sessionmaker] = None
 def get_engine() -> AsyncEngine:
     global _engine
     if _engine is None:
-        # В проде создаем здесь, в тестах он будет уже подменен через conftest
         _engine = create_async_engine(
             str(settings.postgres.DATABASE_URL),
             pool_pre_ping=True,

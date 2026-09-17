@@ -86,7 +86,6 @@ class ExamService:
         chunks_res = await db.execute(chunks_query)
         chunks = chunks_res.scalars().unique().all()
 
-        # ИСПРАВЛЕНИЕ: Сохраняем ID как строки для корректной JSON-сериализации
         selected_question_ids = []
         for chunk in chunks:
             if chunk.questions:
@@ -168,7 +167,6 @@ class ExamService:
         if not session or session.status != SessionStatus.ACTIVE:
             raise HTTPException(status_code=400, detail="Сессия не активна")
 
-        # --- НОВОЕ: Очистка старых ответов (защита от дублей при повторном клике) ---
         from app.models.exam import StudentAnswer
         from sqlalchemy import delete
         await db.execute(delete(StudentAnswer).where(StudentAnswer.session_id == session.id))

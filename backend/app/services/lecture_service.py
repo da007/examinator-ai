@@ -16,7 +16,7 @@ class LectureService:
         pass
 
     async def _get_s3_client(self):
-        session = aioboto3.Session()  # было self.s3_session
+        session = aioboto3.Session()  
         return session.client(
             "s3",
             endpoint_url=settings.s3.ENDPOINT,

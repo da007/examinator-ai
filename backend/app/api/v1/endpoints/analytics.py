@@ -15,9 +15,11 @@ from app.services.analytics_service import analytics_service
 
 router = APIRouter()
 
+# Главный экран (дашборд) преподавателя — сводка по студентам/лекциям/проверкам
 @router.get("/dashboard", response_model=TeacherDashboard)
 async def get_teacher_dashboard(
     db: AsyncSession = Depends(dependencies.get_db),
+    # Доступ только преподавателю и админу; org_id берём из текущего юзера — данные только по его организации
     current_user: User = Depends(dependencies.RoleChecker([UserRole.TEACHER, UserRole.ADMIN])),
 ) -> Any:
     """
@@ -26,6 +28,8 @@ async def get_teacher_dashboard(
     """
     return await analytics_service.get_teacher_dashboard(db, org_id=current_user.org_id)
 
+
+# Детальная аналитика по одной лекции
 @router.get("/lecture/{lecture_id}", response_model=LectureAnalytics)
 async def get_lecture_analytics(
     lecture_id: uuid.UUID,
@@ -38,10 +42,13 @@ async def get_lecture_analytics(
     stats = await analytics_service.get_lecture_analytics(
         db, lecture_id=lecture_id, org_id=current_user.org_id
     )
+    # Если лекция чужой организации или не существует — сервис вернёт None
     if not stats:
         raise HTTPException(status_code=404, detail="Аналитика для данной лекции не найдена")
     return stats
 
+
+# Личный прогресс студента (доступ только своей персоне, без параметра id)
 @router.get("/student/me", response_model=StudentProgress)
 async def get_my_progress(
     db: AsyncSession = Depends(dependencies.get_db),
@@ -50,15 +57,14 @@ async def get_my_progress(
     """
     Личная аналитика студента: средний балл и динамика по темам.
     """
+    # Роут открыт для любого залогиненного юзера, поэтому роль проверяем вручную
     if current_user.role != UserRole.STUDENT:
         raise HTTPException(status_code=400, detail="Только для студентов")
     
-    # Здесь вызывается метод агрегации для студента (реализуется аналогично в analytics_service)
-    # Для MVP возвращаем структуру на основе данных пользователя
     from sqlalchemy import select, func
     from app.models.exam import StudentAnswer, ExamSession
     
-    # Агрегированные метрики студента (только завершённые, только проверенные ответы)
+    # Средний балл по всем завершённым сессиям + общее кол-во завершённых сессий
     query = (
         select(func.avg(StudentAnswer.final_score), func.count(func.distinct(ExamSession.id)))
         .join(ExamSession, StudentAnswer.session_id == ExamSession.id)
@@ -72,13 +78,14 @@ async def get_my_progress(
     row = res.one()
     avg_score_raw, total_completed = row[0], row[1] or 0
 
-    # Безопасное преобразование None/NaN → 0
+    # Защита от None/некорректного типа при конвертации в float
     try:
         avg_score = round(float(avg_score_raw), 2) if avg_score_raw is not None else 0.0
     except (TypeError, ValueError):
         avg_score = 0.0
 
     # История баллов: последние 10 сессий в хронологическом порядке
+    # Группируем по сессии, чтобы получить средний балл за КАЖДУЮ сессию (не общий средний)
     history_q = (
         select(func.avg(StudentAnswer.final_score))
         .join(ExamSession, StudentAnswer.session_id == ExamSession.id)
@@ -88,10 +95,11 @@ async def get_my_progress(
             StudentAnswer.final_score.is_not(None),
         )
         .group_by(ExamSession.id, ExamSession.start_time)
-        .order_by(ExamSession.start_time.desc())
+        .order_by(ExamSession.start_time.desc())  # сначала новые
         .limit(10)
     )
     history_res = await db.execute(history_q)
+    # Разворачиваем список ([::-1]), чтобы в итоге шли от старых к новым — удобно для графика
     score_history = [
         round(float(r[0]), 2) for r in history_res.all() if r[0] is not None
     ][::-1]
@@ -99,11 +107,13 @@ async def get_my_progress(
     return StudentProgress(
         avg_score=avg_score,
         exams_completed=total_completed,
-        strong_topics=[],
-        weak_topics=[],
+        strong_topics=[],  # TODO: пока не реализовано
+        weak_topics=[],    # TODO: пока не реализовано
         score_history=score_history,
     )
 
+
+# Экспорт ведомости по дисциплине в Excel
 @router.get("/subjects/{subject_id}/export")
 async def export_grades(
     subject_id: uuid.UUID,
@@ -114,15 +124,17 @@ async def export_grades(
     Скачать ведомость по дисциплине в формате XLSX.
     """
     subject = await db.get(Subject, subject_id)
+    # Проверка, что дисциплина существует и принадлежит той же организации, что и юзер
     if not subject or subject.org_id != current_user.org_id:
         raise HTTPException(status_code=404, detail="Дисциплина не найдена")
 
+    # Сервис генерирует файл в памяти (буфер) и отдаёт его потоком, без сохранения на диск
     file_buffer = await analytics_service.export_subject_grades(
         db, subject_id=subject_id, org_id=current_user.org_id
     )
     
     filename = f"Grades_{subject.name.replace(' ', '_')}.xlsx"
-    encoded_filename = quote(filename)
+    encoded_filename = quote(filename)  # экранируем спецсимволы для заголовка
     
     return StreamingResponse(
         file_buffer,

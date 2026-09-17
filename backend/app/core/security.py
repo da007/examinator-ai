@@ -7,7 +7,6 @@ from passlib.context import CryptContext
 from app.core.config import settings
 
 # Настройка контекста хеширования. 
-# bcrypt автоматически обрабатывает соль, что защищает от радужных таблиц.
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
@@ -26,8 +25,6 @@ def create_access_token(
             minutes=settings.app.ACCESS_TOKEN_EXPIRE_MINUTES
         )
     
-    # Payload токена. Не кладите сюда чувствительные данные (пароли), 
-    # так как содержимое JWT можно прочитать без ключа.
     to_encode = {"exp": expire, "sub": str(subject)}
     
     encoded_jwt = jwt.encode(

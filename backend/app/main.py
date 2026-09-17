@@ -13,10 +13,6 @@ def get_application() -> FastAPI:
         redoc_url="/redoc",
     )
  
-    # ИСПРАВЛЕНО: было settings.BACKEND_CORS_ORIGINS — такого поля нет в корневом Settings.
-    # В config.py нет класса для CORS, BACKEND_CORS_ORIGINS читается напрямую из env.
-    # Правильное решение: добавить в Settings или читать через os.getenv.
-    # Добавляем через AppSettings или отдельно — здесь используем прямой импорт из os.
     import os, json
     cors_origins_raw = os.getenv("BACKEND_CORS_ORIGINS", '["http://localhost:3000","http://localhost:8000"]')
     try:

@@ -26,9 +26,9 @@ async def upload_lecture(
     title: str = Form(...),
     subject_id: uuid.UUID = Form(...),
     file: UploadFile = File(...),
-    open_from: Optional[str] = Form(None),           # FIX-6: ISO-строка или null
-    deadline_at: Optional[str] = Form(None),          # FIX-6
-    exam_duration_minutes: Optional[int] = Form(None) # FIX-6
+    open_from: Optional[str] = Form(None),           # ISO-строка даты открытия доступа или null
+    deadline_at: Optional[str] = Form(None),          # ISO-строка дедлайна или null
+    exam_duration_minutes: Optional[int] = Form(None) # лимит времени на прохождение экзамена, в минутах
 ) -> Any:
     """
     Загрузка новой лекции в рамках конкретной дисциплины (Subject).
@@ -40,7 +40,7 @@ async def upload_lecture(
     4. Запуск фоновой задачи парсинга и генерации вопросов.
     """
     
-    # 1. Валидация формата файла
+    # 1. Валидация формата файла — разрешены только текстовые/докс-документы
     extension = file.filename.split('.')[-1].lower()
     if extension not in ["docx", "txt"]:
         raise HTTPException(
@@ -69,7 +69,8 @@ async def upload_lecture(
 
     # 3. Чтение контента и создание записи
     content = await file.read()
-    # FIX-6: парсим опциональные ISO-строки в datetime
+
+    # Парсим опциональные ISO-строки дат в datetime; при некорректном формате — тихо возвращаем None
     def _parse_dt(s: Optional[str]):
         if not s:
             return None
@@ -97,6 +98,7 @@ async def upload_lecture(
     )
 
     # 4. Постановка задачи в Celery для извлечения текста и генерации вопросов
+    # Ключ файла строится по той же схеме {org_id}/{lecture_id}.{ext}, что и при сохранении в S3
     file_key = f"{db_obj.org_id}/{db_obj.id}.{extension}"
     process_lecture_task.delay(str(db_obj.id), file_key)
 
@@ -108,6 +110,7 @@ async def read_lectures(
     db: AsyncSession = Depends(dependencies.get_db),
     current_user: User = Depends(dependencies.get_current_user),
 ) -> Any:
+    # Список лекций всегда ограничен организацией пользователя; фильтр по subject_id опциональный
     query = select(Lecture).where(Lecture.org_id == current_user.org_id)
     if subject_id:
         query = query.where(Lecture.subject_id == subject_id)
@@ -120,8 +123,9 @@ async def read_lectures(
 
     query = query.order_by(Lecture.created_at.desc())
 
-    result = await db.execute(query)  # ← Добавьте это
-    lectures = result.scalars().all()  # ← И это
+    # Выполняем запрос и достаём объекты из результата
+    result = await db.execute(query)
+    lectures = result.scalars().all()
         
     return lectures 
 
@@ -133,7 +137,6 @@ async def read_lecture(
 ) -> Any:
     """
     Получение детальной информации о лекции.
-    ИСПРАВЛЕНО: Используется явный select для исключения ошибок сессии.
     """
     query = select(Lecture).where(Lecture.id == lecture_id)
     result = await db.execute(query)
@@ -155,6 +158,7 @@ async def publish_lecture(
     current_user: User = Depends(dependencies.RoleChecker([UserRole.TEACHER, UserRole.ADMIN])),
 ) -> Any:
     """Публикация лекции."""
+    # Вся проверка прав/статуса — внутри сервиса; он же меняет статус лекции на PUBLISHED
     lecture = await question_service.publish_lecture(
         db, lecture_id=lecture_id, org_id=current_user.org_id
     )
@@ -211,7 +215,7 @@ async def update_lecture(
     if lecture.org_id != current_user.org_id and not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="У вас нет прав на редактирование этой лекции")
 
-    # 3. Обновление через сервис
+    # 3. Обновление через сервис (частичное обновление полей из obj_in)
     return await lecture_service.update(db, db_obj=lecture, obj_in=obj_in)
 
 @router.get("/{lecture_id}/download")
@@ -231,12 +235,9 @@ async def download_lecture_file(
     if not lecture or (lecture.org_id != current_user.org_id and not current_user.is_superuser):
         raise HTTPException(status_code=404, detail="Лекция не найдена")
 
-    # 2. Получаем объект из S3
-    # Для этого нам нужно знать расширение. В БД оно не хранится отдельно, 
-    # но мы можем достать его из ключа (или предположить docx/txt как в загрузке)
-    # В идеале при загрузке стоит хранить оригинальное имя файла. 
-    # Для MVP пробуем найти файл в бакете.
-    
+    # 2. Получаем объект из S3.
+    # Расширение исходного файла в БД отдельно не хранится, поэтому перебираем
+    # поддерживаемые варианты (docx/txt) и ищем, какой ключ реально существует в бакете.
     import aioboto3
     from app.core.config import settings
     
@@ -286,10 +287,10 @@ async def regenerate_lecture(
     if not lecture or (lecture.org_id != current_user.org_id and not current_user.is_superuser):
         raise HTTPException(status_code=404, detail="Лекция не найдена")
 
-    # Вызываем сервис для очистки данных и получения ключа файла
+    # Вызываем сервис для очистки данных (старые чанки/вопросы удаляются) и получения ключа файла
     file_key = await lecture_service.prepare_for_regeneration(db, db_obj=lecture)
 
-    # Запускаем задачу заново
+    # Запускаем задачу заново — весь пайплайн парсинга/генерации вопросов пройдёт с нуля
     process_lecture_task.delay(str(lecture.id), file_key)
 
     return lecture
